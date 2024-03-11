@@ -37,26 +37,25 @@ const Products = () => {
         setIsLoading(false);
     };
 
-    const fetchFilteredProductIds = async () => {
+    const fetchFilteredProductIds = async (appliedFilters) => {
         setIsLoading(true);
-        setProductPages({}); // Очищаем кэш при применении нового фильтра
+        setProductPages({});
+        
         try {
-            const response = await fetchProducts('filter', { ...filters });
-            if (response && response.result) {
-                const filteredIds = response.result.map(JSON.stringify);
-                const uniqueFilteredIdsSet = new Set(filteredIds);
-                const uniqueFilteredIdsArray = Array.from(uniqueFilteredIdsSet, JSON.parse);
-                setFilteredIds(uniqueFilteredIdsArray);
-                setIsFilterApplied(true);
-            } else {
-                setFilteredIds([]);
-                setIsFilterApplied(false);
-            }
+          const response = await fetchProducts('filter', appliedFilters);
+          if (response && response.result) {
+            const filteredIds = [...new Set(response.result)];
+            setFilteredIds(filteredIds);
+            setIsFilterApplied(true);
+          } else {
+            setFilteredIds([]);
+            setIsFilterApplied(false);
+          }
         } catch (error) {
-            console.error('Error fetching filtered product IDs:', error);
+          console.error('Error fetching filtered product IDs:', error);
         }
         setIsLoading(false);
-    };
+      };
 
     useEffect(() => {
         if ((isFilterApplied ? filteredIds.length : uniqueIds.length) > 0) {
@@ -96,10 +95,18 @@ const Products = () => {
         setFilters(prevFilters => ({ ...prevFilters, [name]: value }));
     };
 
-    const applyFilters = () => {
+    const applyFilters = async () => {
         setCurrentPage(0);
-        fetchFilteredProductIds();
-    };
+        const appliedFilters = {...filters};
+        if (appliedFilters.price && typeof appliedFilters.price === 'string') {
+          appliedFilters.price = Number(appliedFilters.price);
+          if (isNaN(appliedFilters.price)) {
+            appliedFilters.price = null;
+          }
+        }
+      
+        fetchFilteredProductIds(appliedFilters);
+      };
 
     const resetSearch = () => {
         setFilters({ product: '', price: null, brand: '' });
